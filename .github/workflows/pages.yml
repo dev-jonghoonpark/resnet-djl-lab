@@ -1,0 +1,38 @@
+name: Pages
+
+# docs/index.html은 이미 커밋되어 있으므로 여기서는 빌드하지 않고 그대로 올린다.
+# 다시 만들려면 로컬에서: mvn exec:java -Dexec.mainClass=lab.resnet.Probe && python3 tools/viz/build.py
+#
+# main과 작업 브랜치 양쪽에서 돌게 해 뒀다. merge한 뒤에도 Pages 설정을 다시 잡을 필요가 없다.
+# 다만 두 브랜치를 번갈아 push하면 나중에 끝난 쪽이 올라간다.
+on:
+  push:
+    branches: [main, feat/resnet-v1-v2]
+    paths:
+      - "docs/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+      - id: deploy
+        uses: actions/deploy-pages@v4
