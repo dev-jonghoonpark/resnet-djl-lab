@@ -132,6 +132,53 @@ mvn exec:java -Dexec.mainClass=lab.resnet.Train \
 **CPU로 논문 스케줄을 다 돌리면 약 15시간이다** (182 에폭 × 5분). 제대로 재현하려면
 GPU를 쓰거나 에폭 수를 줄이는 편이 낫다. 논문 기준 ResNet-20의 최종 오류율은 8.75%다.
 
+## 사이클 한 번 들여다보기 (`Probe`)
+
+이미지 **한 장**이 순전파 → 손실 → 역전파 → 가중치 갱신 → 재순전파를 한 번 도는 동안
+오간 값을 전부 받아 적어 JSON으로 남긴다. 그 JSON을 HTML 한 장으로 말아 넣으면
+단계별로 값이 어떻게 변하는지 눈으로 볼 수 있다.
+
+**결과물 → https://dev-jonghoonpark.github.io/resnet-djl-lab/**
+
+```bash
+mvn exec:java -Dexec.mainClass=lab.resnet.Probe   # build/probe/trace-{v1,v2}.json
+python3 tools/viz/build.py                        # docs/index.html + build/viz/cycle.html
+```
+
+`build.py`는 두 벌을 뽑는다. `docs/index.html`은 GitHub Pages가 그대로 서빙하는 완전한
+문서이고, `build/viz/cycle.html`은 `<head>`를 스스로 씌우는 뷰어에 넣을 조각이다. 둘 다
+외부 요청이 하나도 없다 — trace JSON도, 이미지도, 히트맵도 전부 인라인이다.
+
+`docs/`가 바뀐 채로 `main` 또는 `feat/resnet-v1-v2`에 push하면
+`.github/workflows/pages.yml`이 그대로 올린다. CI는 Java를 돌리지 않는다 — HTML이 이미
+커밋되어 있기 때문이다. 그래서 `Probe`를 다시 돌리는 것은 사람의 몫이다.
+
+| 옵션        | 기본값                                  | 설명                          |
+|-------------|-----------------------------------------|-------------------------------|
+| `--version` | `v1,v2`                                 | 쉼표로 여러 개                |
+| `--depth`   | `20`                                    |                               |
+| `--image`   | `assets/cifar10/test/cat/test_01124.png`| 상위 폴더명이 정답 클래스     |
+| `--lr`      | `0.1`                                   | 갱신 스텝의 학습률            |
+| `--seed`    | `42`                                    | 초기화 시드                   |
+| `--out`     | `build/probe`                           |                               |
+
+기록하는 것:
+
+- 전처리 3단계(PNG uint8 → ToTensor → Normalize)에서 픽셀 하나가 겪는 값 변화
+- 블록 하나하나의 입출력 shape · min/max/평균/표준편차 · 0의 비율 · MAC 수 · 특징 맵
+- **연산 한 칸의 산수 전개** — conv 곱셈 27개, BN의 μ·σ²·γ·β, 잔차 덧셈, 평균 풀링 64칸,
+  Linear 내적 64항. 전부 Java에서 손으로 다시 계산해 엔진 값과 나란히 둔다
+- softmax · 손실, `dL/dz = softmax(z) − onehot`, 마지막 Linear 가중치 그래디언트 대조
+- 층별 그래디언트 노름, SGD 한 스텝 전후의 가중치, 갱신 후 다시 넣었을 때의 로짓
+
+`Train`과 다른 점은 배치가 1이라는 것 하나다. 그래서 **BatchNorm의 평균·분산이 그 한 장에서만
+나온다**. 초기화·손실·옵티마이저 설정은 `Train`과 같다.
+
+블록 트리를 직접 걸어 내려가며 자식마다 `forward`를 따로 호출한다 — `SequentialBlock.forward`에
+맡기면 중간값을 볼 수 없기 때문이다. `ParallelBlock`의 합류 함수는 private이라 꺼낼 수 없어서
+버전별 규칙(v1은 더한 뒤 ReLU, v2는 그냥 더하기)을 `Probe`에서 다시 적용한다. 즉 `ResNetV1`/
+`ResNetV2`의 합류 함수를 고치면 `Probe.walk`도 같이 고쳐야 한다.
+
 ## 파일
 
 | 파일                    | 역할                                                       |
@@ -143,6 +190,8 @@ GPU를 쓰거나 에폭 수를 줄이는 편이 낫다. 논문 기준 ResNet-20�
 | `Main.java`             | 구조 덤프와 파라미터 수 비교                                |
 | `Train.java`            | CIFAR-10 학습 루프                                          |
 | `CifarAugmentation.java`| 패딩 + 랜덤 크롭 + 좌우 반전                                |
+| `Probe.java`            | 이미지 한 장의 사이클 한 번을 값 단위로 기록 → JSON         |
+| `tools/viz/`            | 그 JSON을 자체 완결 HTML 한 장으로 만드는 템플릿과 빌드 스크립트 |
 
 ## DJL 기본 모델주(model-zoo)를 쓰지 않은 이유
 

@@ -1,0 +1,1389 @@
+<title>이미지 한 장이 ResNet을 한 바퀴 도는 동안</title>
+
+<style>
+:root {
+  --ground: #f1f1ee;
+  --panel: #fbfbf9;
+  --panel-2: #e9e9e4;
+  --ink: #191c1f;
+  --ink-2: #454b51;
+  --muted: #6a7178;
+  --rule: #d8d9d3;
+  --rule-soft: #e6e7e1;
+  --cool: #2e7ea6;
+  --warm: #c0562f;
+  --good: #47825a;
+  --plot-neutral: 251, 251, 249;
+  --shadow: 0 1px 2px rgba(25, 28, 31, .05), 0 8px 24px -16px rgba(25, 28, 31, .3);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #101317;
+    --panel: #171b20;
+    --panel-2: #1f242a;
+    --ink: #e4e4df;
+    --ink-2: #b6bcc2;
+    --muted: #8b939b;
+    --rule: #272c33;
+    --rule-soft: #21262c;
+    --cool: #5aa9ce;
+    --warm: #e07a4e;
+    --good: #6fae82;
+    --plot-neutral: 23, 27, 32;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -16px rgba(0, 0, 0, .8);
+  }
+}
+:root[data-theme="light"] {
+  --ground: #f1f1ee;
+  --panel: #fbfbf9;
+  --panel-2: #e9e9e4;
+  --ink: #191c1f;
+  --ink-2: #454b51;
+  --muted: #6a7178;
+  --rule: #d8d9d3;
+  --rule-soft: #e6e7e1;
+  --cool: #2e7ea6;
+  --warm: #c0562f;
+  --good: #47825a;
+  --plot-neutral: 251, 251, 249;
+  --shadow: 0 1px 2px rgba(25, 28, 31, .05), 0 8px 24px -16px rgba(25, 28, 31, .3);
+}
+:root[data-theme="dark"] {
+  --ground: #101317;
+  --panel: #171b20;
+  --panel-2: #1f242a;
+  --ink: #e4e4df;
+  --ink-2: #b6bcc2;
+  --muted: #8b939b;
+  --rule: #272c33;
+  --rule-soft: #21262c;
+  --cool: #5aa9ce;
+  --warm: #e07a4e;
+  --good: #6fae82;
+  --plot-neutral: 23, 27, 32;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -16px rgba(0, 0, 0, .8);
+}
+
+:root {
+  --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard",
+          "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  color-scheme: light dark;
+}
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.72;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 1060px; margin: 0 auto; padding: 0 22px 120px; }
+
+/* ── 상단 바 ─────────────────────────────────────────────────── */
+.bar {
+  position: sticky; top: 0; z-index: 20;
+  background: color-mix(in srgb, var(--ground) 88%, transparent);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--rule);
+}
+.bar-in {
+  max-width: 1060px; margin: 0 auto; padding: 10px 22px;
+  display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
+}
+.brand { font-family: var(--mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.brand b { color: var(--ink); font-weight: 600; letter-spacing: .06em; }
+.spacer { flex: 1 1 auto; }
+.toggle { display: flex; border: 1px solid var(--rule); border-radius: 3px; overflow: hidden; }
+.toggle button {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .06em;
+  padding: 5px 14px; border: 0; background: var(--panel); color: var(--muted); cursor: pointer;
+}
+.toggle button + button { border-left: 1px solid var(--rule); }
+.toggle button[aria-pressed="true"] { background: var(--ink); color: var(--ground); }
+.toggle button:focus-visible { outline: 2px solid var(--cool); outline-offset: -2px; }
+.theme {
+  font-family: var(--mono); font-size: 13px; line-height: 1; cursor: pointer;
+  background: var(--panel); color: var(--muted);
+  border: 1px solid var(--rule); border-radius: 3px; padding: 5px 9px;
+}
+.theme:hover { color: var(--ink); }
+.theme:focus-visible { outline: 2px solid var(--cool); outline-offset: 1px; }
+.jump { display: flex; gap: 2px; flex-wrap: wrap; }
+.jump a {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .04em;
+  color: var(--muted); text-decoration: none; padding: 4px 7px; border-radius: 3px;
+}
+.jump a:hover { color: var(--ink); background: var(--panel-2); }
+.jump a.on { color: var(--warm); }
+
+/* ── 타이포 ──────────────────────────────────────────────────── */
+h1 {
+  font-family: var(--mono); font-weight: 600; font-size: clamp(28px, 4.4vw, 46px);
+  line-height: 1.12; letter-spacing: -.02em; margin: 0 0 14px; text-wrap: balance;
+}
+h2 {
+  font-family: var(--mono); font-weight: 600; font-size: 20px; letter-spacing: -.01em;
+  margin: 0 0 6px; text-wrap: balance;
+}
+h3 {
+  font-family: var(--mono); font-weight: 600; font-size: 14px; letter-spacing: .01em;
+  margin: 0 0 8px;
+}
+.eyebrow {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--warm); margin: 0 0 10px;
+}
+.lede { font-size: 17px; color: var(--ink-2); max-width: 62ch; margin: 0 0 8px; }
+p { max-width: 66ch; margin: 0 0 12px; }
+.note { font-size: 13.5px; color: var(--muted); max-width: 64ch; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+code, .num { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: .92em; }
+.cool { color: var(--cool); }
+.warm { color: var(--warm); }
+a { color: var(--cool); }
+
+section { padding: 54px 0 0; scroll-margin-top: 64px; }
+section > .head { border-top: 1px solid var(--rule); padding-top: 22px; margin-bottom: 22px; }
+
+/* ── 패널 ────────────────────────────────────────────────────── */
+.panel {
+  background: var(--panel); border: 1px solid var(--rule); border-radius: 4px;
+  padding: 18px 20px; box-shadow: var(--shadow);
+}
+.grid { display: grid; gap: 16px; }
+.g2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.g3 { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+.scroll-x { overflow-x: auto; }
+
+/* ── 히어로 ──────────────────────────────────────────────────── */
+.hero { display: grid; grid-template-columns: minmax(190px, 240px) 1fr; gap: 30px; align-items: start; }
+@media (max-width: 700px) { .hero { grid-template-columns: 1fr; } }
+.shot { border: 1px solid var(--rule); border-radius: 3px; background: var(--panel); padding: 10px; }
+.shot canvas { width: 100%; height: auto; display: block; image-rendering: pixelated; border-radius: 2px; }
+.shot .cap { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 8px; letter-spacing: .04em; }
+
+.bigloss { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin: 6px 0 4px; }
+.bigloss .v { font-family: var(--mono); font-size: 40px; font-weight: 600; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.bigloss .from { color: var(--muted); }
+.bigloss .arrow { color: var(--rule); font-size: 26px; }
+.bigloss .to { color: var(--good); }
+
+.pipe { display: flex; flex-wrap: wrap; gap: 6px; margin: 18px 0 0; }
+.pipe .n {
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: .03em;
+  border: 1px solid var(--rule); border-radius: 3px; padding: 4px 9px; color: var(--ink-2);
+  background: var(--panel);
+}
+.pipe .n b { color: var(--warm); font-weight: 600; }
+.pipe .sep { color: var(--rule); align-self: center; font-family: var(--mono); }
+
+/* ── 확률 막대 ───────────────────────────────────────────────── */
+.probs { display: grid; gap: 3px; }
+.prow { display: grid; grid-template-columns: 74px 1fr 48px 1fr 48px; gap: 8px; align-items: center; font-family: var(--mono); font-size: 11.5px; }
+.prow .pv { color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.prow.is-true .pv { color: var(--ink); font-weight: 600; }
+.prow .nm { color: var(--muted); text-align: right; }
+.prow.is-true .nm { color: var(--ink); font-weight: 600; }
+.pbar { position: relative; height: 15px; background: var(--panel-2); border-radius: 2px; overflow: hidden; }
+.pbar i { position: absolute; inset: 0 auto 0 0; display: block; background: var(--cool); border-radius: 2px; transition: width .55s cubic-bezier(.4,0,.2,1); }
+.pbar.after i { background: var(--warm); }
+.prow.is-true .pbar i { background: var(--good); }
+.plabels { display: grid; grid-template-columns: 74px 1fr 48px 1fr 48px; gap: 8px; font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+
+/* ── 표 ──────────────────────────────────────────────────────── */
+table { border-collapse: collapse; width: 100%; font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; }
+th { text-align: right; font-weight: 500; color: var(--muted); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; padding: 0 9px 7px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+td { padding: 5px 9px; text-align: right; border-bottom: 1px solid var(--rule-soft); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: var(--panel-2); }
+td.k { color: var(--muted); }
+
+/* ── 단계 로그 ───────────────────────────────────────────────── */
+.log { border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; background: var(--panel); }
+.grouphead {
+  display: flex; align-items: center; gap: 10px;
+  font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--muted); background: var(--panel-2); padding: 6px 12px;
+  border-bottom: 1px solid var(--rule); border-top: 1px solid var(--rule);
+}
+.grouphead:first-child { border-top: 0; }
+.grouphead .sh { letter-spacing: 0; text-transform: none; color: var(--ink-2); }
+.srow, .loghead {
+  display: grid; grid-template-columns: 28px 26px minmax(140px, 1fr) 176px 128px 58px 56px;
+  gap: 10px; align-items: center; padding: 4px 12px;
+}
+.loghead {
+  border-bottom: 1px solid var(--rule); background: var(--panel);
+  font-family: var(--mono); font-size: 10px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted); padding-top: 8px; padding-bottom: 6px;
+}
+.loghead span:nth-child(n+4) { text-align: right; }
+.srow {
+  border-bottom: 1px solid var(--rule-soft); cursor: pointer;
+  font-family: var(--mono); font-size: 11.5px; font-variant-numeric: tabular-nums;
+}
+.srow:hover { background: var(--panel-2); }
+.srow[aria-expanded="true"] { background: var(--panel-2); }
+.srow:focus-visible { outline: 2px solid var(--cool); outline-offset: -2px; }
+.srow .idx { color: var(--muted); font-size: 10.5px; }
+.srow .thumb { width: 26px; height: 26px; border-radius: 2px; display: block; image-rendering: pixelated; background: var(--panel-2); }
+.srow .name { color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.srow .name em { font-style: normal; color: var(--muted); }
+.srow .shape { color: var(--muted); font-size: 10px; text-align: right; white-space: nowrap; }
+.srow .sd, .srow .zf { color: var(--ink-2); text-align: right; font-size: 10.5px; }
+.srow .zf { color: var(--muted); }
+.rangebar { position: relative; height: 16px; background: var(--panel-2); border-radius: 2px; }
+.rangebar .zero { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--rule); }
+.rangebar .span { position: absolute; top: 6px; height: 4px; border-radius: 1px; opacity: .45; }
+.rangebar .sig { position: absolute; top: 2px; height: 12px; border-radius: 1px; }
+.rangebar .mu { position: absolute; top: 0; bottom: 0; width: 1.5px; background: var(--ink); opacity: .75; }
+.detail { padding: 14px 12px 18px; background: var(--panel-2); border-bottom: 1px solid var(--rule); }
+.maps { display: flex; gap: 10px; flex-wrap: wrap; }
+.mapc { text-align: center; }
+.mapc canvas { width: 92px; height: 92px; image-rendering: pixelated; border: 1px solid var(--rule); border-radius: 2px; display: block; }
+.mapc .cap { font-family: var(--mono); font-size: 10px; color: var(--muted); margin-top: 4px; letter-spacing: .03em; }
+@media (max-width: 820px) {
+  .srow, .loghead { grid-template-columns: 24px 24px 1fr 92px; gap: 8px; }
+  .srow .sd, .srow .zf, .srow .rangebar,
+  .loghead span:nth-child(n+5) { display: none; }
+  .srow .shape .in { display: none; }
+  .bar-in { gap: 10px; }
+  .jump { flex-wrap: nowrap; overflow-x: auto; order: 3; width: 100%;
+          scrollbar-width: none; -ms-overflow-style: none; }
+  .jump::-webkit-scrollbar { display: none; }
+  .jump a { white-space: nowrap; }
+  .spacer { display: none; }
+}
+
+/* ── 범례 ────────────────────────────────────────────────────── */
+.legend { display: flex; align-items: center; gap: 10px; font-family: var(--mono); font-size: 10.5px; color: var(--muted); letter-spacing: .04em; }
+.legend .ramp { width: 130px; height: 9px; border-radius: 2px; border: 1px solid var(--rule); }
+
+/* ── 산술 전개 ───────────────────────────────────────────────── */
+.terms { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+@media (max-width: 660px) { .terms { grid-template-columns: 1fr; } }
+.tgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 3px; }
+.cell {
+  border: 1px solid var(--rule); border-radius: 2px; padding: 5px 4px; text-align: center;
+  font-family: var(--mono); font-size: 10px; line-height: 1.45; font-variant-numeric: tabular-nums;
+  background: var(--panel);
+}
+.cell .x { color: var(--cool); display: block; }
+.cell .w { color: var(--muted); display: block; }
+.cell .p { color: var(--ink); display: block; border-top: 1px solid var(--rule-soft); margin-top: 2px; padding-top: 2px; }
+.eq {
+  font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums;
+  background: var(--panel-2); border: 1px solid var(--rule); border-radius: 3px;
+  padding: 10px 12px; overflow-x: auto; white-space: nowrap; line-height: 1.9;
+}
+.eq .lbl { color: var(--muted); }
+.check {
+  display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 11.5px;
+  color: var(--good); border: 1px solid color-mix(in srgb, var(--good) 40%, transparent);
+  background: color-mix(in srgb, var(--good) 9%, transparent);
+  border-radius: 3px; padding: 3px 9px; margin-top: 8px;
+}
+.tabs { display: flex; gap: 2px; flex-wrap: wrap; margin-bottom: 14px; }
+.tabs button {
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: .03em; cursor: pointer;
+  background: transparent; color: var(--muted); border: 1px solid transparent;
+  border-radius: 3px; padding: 5px 11px;
+}
+.tabs button:hover { color: var(--ink); }
+.tabs button[aria-selected="true"] { color: var(--ink); border-color: var(--rule); background: var(--panel); }
+.tabs button:focus-visible { outline: 2px solid var(--cool); outline-offset: 1px; }
+
+/* ── 통계 카드 ───────────────────────────────────────────────── */
+.stat { border: 1px solid var(--rule); border-radius: 3px; padding: 11px 13px; background: var(--panel); }
+.stat .k { font-family: var(--mono); font-size: 10.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.stat .v { font-family: var(--mono); font-size: 21px; font-variant-numeric: tabular-nums; letter-spacing: -.02em; margin-top: 2px; }
+.stat .s { font-size: 12px; color: var(--muted); }
+
+svg.chart { width: 100%; height: auto; display: block; overflow: visible; }
+svg.chart text { font-family: var(--mono); font-size: 9.5px; fill: var(--muted); }
+svg.chart .ax { stroke: var(--rule); stroke-width: 1; }
+svg.chart .gridline { stroke: var(--rule-soft); stroke-width: 1; }
+
+.foot { margin-top: 60px; border-top: 1px solid var(--rule); padding-top: 20px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+</style>
+
+<div class="bar">
+  <div class="bar-in">
+    <span class="brand"><b>resnet-djl-lab</b> · 사이클 한 번</span>
+    <nav class="jump" id="jump">
+      <a href="#s0">0 입력</a><a href="#s1">1 순전파</a><a href="#s2">2 해부</a>
+      <a href="#s3">3 손실</a><a href="#s4">4 역전파</a><a href="#s5">5 갱신</a><a href="#s6">6 재순전파</a>
+    </nav>
+    <span class="spacer"></span>
+    <div class="toggle" role="group" aria-label="ResNet 버전">
+      <button type="button" data-ver="v1" aria-pressed="true">v1</button>
+      <button type="button" data-ver="v2" aria-pressed="false">v2</button>
+    </div>
+    <button type="button" class="theme" id="theme" aria-label="밝기 전환">◐</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <header style="padding-top:46px">
+    <p class="eyebrow">CIFAR-10 · ResNet-20 · 초기화 직후</p>
+    <h1>이미지 한 장이<br>한 바퀴 도는 동안</h1>
+    <p class="lede">
+      고양이 사진 <span class="mono">32×32</span> 한 장이 순전파 → 손실 → 역전파 → 가중치 갱신을
+      한 번 거친다. 아래 숫자는 전부 <span class="mono">lab.resnet.Probe</span>가 실제 실행에서
+      받아 적은 값이다. 그림으로 설명한 것이 아니라, 그 실행에서 나온 텐서 그대로다.
+    </p>
+  </header>
+
+  <!-- ─── 요약 ───────────────────────────────────────────────── -->
+  <section id="hero" style="padding-top:30px">
+    <div class="hero">
+      <div>
+        <div class="shot">
+          <canvas id="srcimg" width="32" height="32" aria-label="입력 이미지"></canvas>
+          <div class="cap" id="srccap">—</div>
+        </div>
+      </div>
+      <div>
+        <p class="eyebrow" style="color:var(--muted)">교차 엔트로피 손실</p>
+        <div class="bigloss">
+          <span class="v from" id="loss-before">–</span>
+          <span class="arrow">→</span>
+          <span class="v to" id="loss-after">–</span>
+        </div>
+        <p class="note" id="loss-note">–</p>
+        <div class="pipe" id="pipe"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── 0 입력 ─────────────────────────────────────────────── -->
+  <section id="s0">
+    <div class="head">
+      <p class="eyebrow">0단계</p>
+      <h2>PNG 픽셀이 텐서가 되기까지</h2>
+      <p class="note">
+        네트워크는 <span class="mono">0~255</span> 정수를 먹지 않는다. 두 번의 변환을 거쳐
+        평균 0 · 표준편차 1 근처의 실수로 바뀐 다음에야 첫 conv에 들어간다.
+      </p>
+    </div>
+
+    <div class="grid g2">
+      <div class="panel">
+        <h3>픽셀 <span class="mono" id="px-coord">(16,16)</span> 하나를 따라가기</h3>
+        <div class="scroll-x"><table id="pre-pixel"></table></div>
+        <p class="note" style="margin-top:10px">
+          <span class="mono">normalized = (raw ÷ 255 − mean) ÷ std</span> —
+          mean·std는 CIFAR-10 학습셋 전체에서 미리 구해 둔 채널별 상수다
+          (<span class="mono">Cifar10.NORMALIZE_MEAN/STD</span>).
+        </p>
+      </div>
+      <div class="panel">
+        <h3>텐서 전체의 통계 변화</h3>
+        <div class="scroll-x"><table id="pre-stats"></table></div>
+        <div class="maps" style="margin-top:14px" id="pre-planes"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── 1 순전파 ───────────────────────────────────────────── -->
+  <section id="s1">
+    <div class="head">
+      <p class="eyebrow">1단계</p>
+      <h2>순전파 — <span id="nsteps">–</span>개의 연산</h2>
+      <p class="note">
+        블록 하나하나를 따로 실행해 중간 텐서를 전부 받아 적었다. 행을 누르면 그 단계의
+        특징 맵과 파라미터가 펼쳐진다. 막대는 값의 범위를 뜻한다 —
+        가는 선이 <span class="mono">min~max</span>, 두꺼운 부분이 <span class="mono">평균 ± 표준편차</span>,
+        세로선이 평균이다. 80단계가 같은 눈금을 쓰되, 앞쪽 층이 뭉개지지 않게 제곱근 눈금이다.
+      </p>
+      <div class="legend" style="margin-top:12px">
+        <span>음수</span><canvas class="ramp" id="ramp" width="130" height="9"></canvas><span>양수</span>
+        <span style="margin-left:8px">· 히트맵과 막대 모두 같은 배색을 쓴다</span>
+      </div>
+    </div>
+
+    <div class="grid g2" style="margin-bottom:18px">
+      <div class="panel">
+        <h3>깊이에 따른 활성값 표준편차</h3>
+        <div id="chart-std"></div>
+        <p class="note" style="margin-top:6px">BatchNorm이 지날 때마다 1로 되돌려 놓는 모습이 그대로 보인다.</p>
+      </div>
+      <div class="panel">
+        <h3>ReLU가 죽인 칸의 비율</h3>
+        <div id="chart-zero"></div>
+        <p class="note" style="margin-top:6px">0인 칸의 비율. ReLU 직후마다 절반 가까이 0이 된다.</p>
+      </div>
+    </div>
+
+    <div class="log" id="log"></div>
+  </section>
+
+  <!-- ─── 2 해부 ─────────────────────────────────────────────── -->
+  <section id="s2">
+    <div class="head">
+      <p class="eyebrow">2단계</p>
+      <h2>연산 하나를 손으로 다시 해보기</h2>
+      <p class="note">
+        아래 값은 전부 계측기가 <b>Java에서 직접 다시 계산한 것</b>이고, 그 옆에 엔진이 내놓은
+        값을 나란히 뒀다. 두 값이 같다는 것이 "이 식이 실제로 저 연산이다"의 증거다.
+      </p>
+    </div>
+    <div class="tabs" id="ex-tabs" role="tablist"></div>
+    <div id="ex-body"></div>
+  </section>
+
+  <!-- ─── 3 손실 ─────────────────────────────────────────────── -->
+  <section id="s3">
+    <div class="head">
+      <p class="eyebrow">3단계</p>
+      <h2>점수 10개가 손실 하나로</h2>
+    </div>
+    <div class="grid g2">
+      <div class="panel">
+        <h3>softmax</h3>
+        <div class="scroll-x"><table id="soft-table"></table></div>
+      </div>
+      <div class="panel">
+        <h3>손실</h3>
+        <div class="eq" id="loss-eq"></div>
+        <p class="note" style="margin-top:12px">
+          교차 엔트로피는 <b>정답 클래스의 확률만</b> 본다. 나머지 아홉 개는 분모를 통해서만
+          영향을 준다. 확률이 <span class="mono">1</span>이면 손실은 <span class="mono">0</span>,
+          <span class="mono">0</span>에 가까워지면 무한대로 간다.
+        </p>
+        <div class="grid g3" style="margin-top:14px">
+          <div class="stat"><div class="k">예측</div><div class="v" id="pred-name">–</div><div class="s" id="pred-p">–</div></div>
+          <div class="stat"><div class="k">정답 확률</div><div class="v" id="true-p">–</div><div class="s">무작위면 0.1</div></div>
+          <div class="stat"><div class="k">손실</div><div class="v" id="loss-v">–</div><div class="s">−ln(정답 확률)</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── 4 역전파 ───────────────────────────────────────────── -->
+  <section id="s4">
+    <div class="head">
+      <p class="eyebrow">4단계</p>
+      <h2>역전파 — 되돌아오는 값</h2>
+      <p class="note">
+        손실을 로짓으로 미분한 값은 손으로 적을 수 있을 만큼 짧다.
+        <span class="mono">dL/dz = softmax(z) − onehot</span> — 정답 자리만 확률에서 1을 빼고,
+        나머지는 확률 그대로다. 부호가 곧 지시다: <span class="warm">양수면 그 점수를 낮춰라</span>,
+        <span class="cool">음수면 올려라</span>.
+      </p>
+    </div>
+    <div class="grid g2">
+      <div class="panel">
+        <h3>로짓에 도착한 그래디언트</h3>
+        <div class="scroll-x"><table id="dz-table"></table></div>
+      </div>
+      <div class="panel">
+        <h3>거기서 한 칸만 더 — 마지막 Linear의 가중치</h3>
+        <div class="eq" id="gradcheck-eq"></div>
+        <div class="scroll-x" style="margin-top:10px"><table id="gradcheck"></table></div>
+        <div class="check" id="gradcheck-diff">–</div>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:16px">
+      <h3>층마다 도착한 그래디언트의 크기</h3>
+      <div id="chart-grad"></div>
+      <p class="note" style="margin-top:8px" id="grad-note">–</p>
+    </div>
+  </section>
+
+  <!-- ─── 5 갱신 ─────────────────────────────────────────────── -->
+  <section id="s5">
+    <div class="head">
+      <p class="eyebrow">5단계</p>
+      <h2>가중치를 실제로 움직이기</h2>
+      <p class="note">
+        옵티마이저 설정은 <span class="mono">Train</span>과 같다 — SGD, momentum 0.9,
+        weight decay 1e-4. 첫 스텝이라 momentum 상태가 아직 0이어서 식이 가장 단순한 꼴로 남는다.
+      </p>
+    </div>
+    <div class="grid g2">
+      <div class="panel">
+        <h3>파라미터 하나가 움직인 자취</h3>
+        <div class="eq" id="update-eq"></div>
+        <div class="check" id="update-check">–</div>
+      </div>
+      <div class="panel">
+        <h3>층별로 얼마나 움직였나</h3>
+        <div id="chart-delta"></div>
+        <p class="note" style="margin-top:8px" id="delta-note">–</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── 6 재순전파 ─────────────────────────────────────────── -->
+  <section id="s6">
+    <div class="head">
+      <p class="eyebrow">6단계</p>
+      <h2>같은 사진을 다시 넣으면</h2>
+    </div>
+    <div class="panel">
+      <div class="plabels"><span></span><span>갱신 전</span><span></span><span>갱신 후</span><span></span></div>
+      <div class="probs" id="probs"></div>
+    </div>
+    <div class="panel" style="margin-top:16px; border-color: color-mix(in srgb, var(--warm) 35%, var(--rule));">
+      <h3 class="warm">이 그림을 곧이곧대로 믿으면 안 되는 지점</h3>
+      <p class="note" style="max-width:70ch">
+        여기서는 <b>한 장</b>으로 <span class="mono">lr = 0.1</span> 스텝을 밟았다. 그래서 손실이
+        극적으로 떨어진다 — 학습이 아니라 그 한 장을 통째로 외운 것에 가깝다. 실제
+        <span class="mono">Train</span>은 128장의 평균 그래디언트로 한 번 움직이므로 이만큼 튀지 않는다.
+        같은 이유로 BatchNorm의 평균·분산도 여기서는 이 사진 한 장에서만 나왔다.
+      </p>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p class="note">
+      재현: <span class="mono">mvn exec:java -Dexec.mainClass=lab.resnet.Probe</span> →
+      <span class="mono">build/probe/trace-{v1,v2}.json</span> →
+      <span class="mono">python3 tools/viz/build.py</span> →
+      <span class="mono">docs/index.html</span>.
+      히트맵은 자리마다 8비트로 눌러 실었으므로 색은 근사값이고, 표와 산술 전개의 숫자는 원본 그대로다.
+    </p>
+    <p class="note">
+      소스 — <a href="https://github.com/dev-jonghoonpark/resnet-djl-lab">github.com/dev-jonghoonpark/resnet-djl-lab</a>
+      · 계측기는 <span class="mono">src/main/java/lab/resnet/Probe.java</span>
+    </p>
+  </footer>
+</div>
+
+<script id="trace-v1" type="application/json">__TRACE_V1__</script>
+<script id="trace-v2" type="application/json">__TRACE_V2__</script>
+
+<script>
+(function () {
+  "use strict";
+
+  const DATA = {
+    v1: JSON.parse(document.getElementById("trace-v1").textContent),
+    v2: JSON.parse(document.getElementById("trace-v2").textContent)
+  };
+  let D = DATA.v1;
+
+  // ── 색 ──────────────────────────────────────────────────────
+  const COOL = [46, 126, 166], COOL_D = [90, 169, 206];
+  const WARM = [192, 86, 47], WARM_D = [224, 122, 78];
+  let NEUT = [251, 251, 249];
+
+  function isDark() {
+    const t = document.documentElement.getAttribute("data-theme");
+    if (t === "dark") return true;
+    if (t === "light") return false;
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  function refreshPalette() {
+    const dark = isDark();
+    NEUT = dark ? [23, 27, 32] : [251, 251, 249];
+    return dark;
+  }
+  /** t ∈ [-1, 1] → 발산형 배색. 0이 배경색이라 부호가 눈에 바로 들어온다. */
+  function ramp(t) {
+    const dark = isDark();
+    const a = t < 0 ? (dark ? COOL_D : COOL) : (dark ? WARM_D : WARM);
+    const k = Math.min(1, Math.abs(t));
+    const e = Math.pow(k, 0.72);
+    return [
+      Math.round(NEUT[0] + (a[0] - NEUT[0]) * e),
+      Math.round(NEUT[1] + (a[1] - NEUT[1]) * e),
+      Math.round(NEUT[2] + (a[2] - NEUT[2]) * e)
+    ];
+  }
+  function css(t) { const c = ramp(t); return "rgb(" + c[0] + "," + c[1] + "," + c[2] + ")"; }
+
+  // ── 유틸 ────────────────────────────────────────────────────
+  const $ = function (s, r) { return (r || document).querySelector(s); };
+  function el(tag, cls, txt) {
+    const n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (txt !== undefined) n.textContent = txt;
+    return n;
+  }
+  function b64bytes(s) {
+    const bin = atob(s), a = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i);
+    return a;
+  }
+  function f(v, d) {
+    if (v === null || v === undefined) return "–";
+    d = d === undefined ? 4 : d;
+    if (v === 0) return "0";
+    if (Math.abs(v) < 1e-4 || Math.abs(v) >= 1e6) return v.toExponential(2);
+    return v.toFixed(d);
+  }
+  function shape(a) { return "[" + a.join("×") + "]"; }
+  function commas(n) { return n.toLocaleString("en-US"); }
+
+  // 테마가 바뀌면 그려 둔 캔버스를 전부 다시 칠한다.
+  const canvases = [];
+  function paint(cv, plane, cells) {
+    const idx = canvases.findIndex(function (c) { return c.cv === cv; });
+    const rec = { cv: cv, plane: plane, cells: cells };
+    if (idx >= 0) canvases[idx] = rec; else canvases.push(rec);
+    draw(rec);
+  }
+  function draw(rec) {
+    const p = rec.plane, w = p.w, h = p.h;
+    rec.cv.width = w; rec.cv.height = h;
+    const ctx = rec.cv.getContext("2d");
+    const img = ctx.createImageData(w, h);
+    const px = b64bytes(p.b64);
+    const amax = Math.max(Math.abs(p.min), Math.abs(p.max)) || 1;
+    for (let i = 0; i < px.length; i++) {
+      const v = p.min + (px[i] / 255) * (p.max - p.min);
+      const c = ramp(v / amax);
+      img.data[i * 4] = c[0]; img.data[i * 4 + 1] = c[1];
+      img.data[i * 4 + 2] = c[2]; img.data[i * 4 + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+  function repaintAll() {
+    refreshPalette();
+    canvases.forEach(draw);
+    drawRamp();
+    render();
+  }
+
+  function drawRamp() {
+    const cv = $("#ramp");
+    const ctx = cv.getContext("2d");
+    for (let i = 0; i < cv.width; i++) {
+      ctx.fillStyle = css((i / (cv.width - 1)) * 2 - 1);
+      ctx.fillRect(i, 0, 1, cv.height);
+    }
+  }
+
+  // ── 표 만들기 ───────────────────────────────────────────────
+  function table(node, head, rows) {
+    node.innerHTML = "";
+    const thead = el("thead"), tr = el("tr");
+    head.forEach(function (h) { tr.appendChild(el("th", null, h)); });
+    thead.appendChild(tr); node.appendChild(thead);
+    const tb = el("tbody");
+    rows.forEach(function (r) {
+      const t = el("tr");
+      if (r.cls) t.className = r.cls;
+      (r.cells || r).forEach(function (c, i) {
+        const td = el("td", i === 0 ? "k" : null);
+        if (c && c.html) td.innerHTML = c.html; else td.textContent = c;
+        t.appendChild(td);
+      });
+      tb.appendChild(t);
+    });
+    node.appendChild(tb);
+  }
+
+  // ── 꺾은선 차트 ─────────────────────────────────────────────
+  function lineChart(host, series, opts) {
+    opts = opts || {};
+    const W = opts.width || 520, H = opts.height || 128, L = 34, R = 6, T = 8, B = 18;
+    const n = series[0].values.length;
+    let lo = opts.min !== undefined ? opts.min : Infinity;
+    let hi = opts.max !== undefined ? opts.max : -Infinity;
+    series.forEach(function (s) {
+      s.values.forEach(function (v) {
+        if (opts.min === undefined) lo = Math.min(lo, v);
+        if (opts.max === undefined) hi = Math.max(hi, v);
+      });
+    });
+    if (hi === lo) hi = lo + 1;
+    const x = function (i) { return L + (i / Math.max(1, n - 1)) * (W - L - R); };
+    const y = function (v) { return T + (1 - (v - lo) / (hi - lo)) * (H - T - B); };
+
+    let s = '<svg class="chart" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img">';
+    const ticks = opts.ticks || [lo, (lo + hi) / 2, hi];
+    ticks.forEach(function (t) {
+      s += '<line class="gridline" x1="' + L + '" y1="' + y(t) + '" x2="' + (W - R) + '" y2="' + y(t) + '"/>';
+      s += '<text x="' + (L - 5) + '" y="' + (y(t) + 3) + '" text-anchor="end">' + (opts.fmt ? opts.fmt(t) : f(t, 2)) + "</text>";
+    });
+    (opts.marks || []).forEach(function (m) {
+      s += '<line class="gridline" x1="' + x(m.i) + '" y1="' + T + '" x2="' + x(m.i) + '" y2="' + (H - B) + '" stroke-dasharray="2 3"/>';
+      s += '<text x="' + x(m.i) + '" y="' + (H - 5) + '" text-anchor="middle">' + m.label + "</text>";
+    });
+    series.forEach(function (ser) {
+      let d = "";
+      ser.values.forEach(function (v, i) { d += (i ? "L" : "M") + x(i).toFixed(1) + " " + y(v).toFixed(1) + " "; });
+      s += '<path d="' + d + '" fill="none" stroke="' + ser.color + '" stroke-width="' + (ser.width || 1.6) +
+           '" stroke-linejoin="round"' + (ser.dash ? ' stroke-dasharray="3 3"' : "") + "/>";
+    });
+    s += '<line class="ax" x1="' + L + '" y1="' + (H - B) + '" x2="' + (W - R) + '" y2="' + (H - B) + '"/>';
+    s += "</svg>";
+    host.innerHTML = s;
+
+    if (series.length > 1) {
+      const lg = el("div", "legend");
+      lg.style.marginTop = "6px";
+      series.forEach(function (ser) {
+        const sw = el("span");
+        sw.style.cssText = "display:inline-block;width:14px;height:2px;background:" + ser.color + ";margin-right:5px;vertical-align:middle";
+        const w = el("span");
+        w.appendChild(sw); w.appendChild(document.createTextNode(ser.name));
+        w.style.marginRight = "12px";
+        lg.appendChild(w);
+      });
+      host.appendChild(lg);
+    }
+  }
+
+  // ── 렌더 ────────────────────────────────────────────────────
+  function render() {
+    renderHero();
+    renderPreprocess();
+    renderForward();
+    renderExhibits();
+    renderLoss();
+    renderBackward();
+    renderUpdate();
+    renderProbs();
+  }
+
+  function renderHero() {
+    const im = D.image;
+    const cv = $("#srcimg");
+    cv.width = im.width; cv.height = im.height;
+    const ctx = cv.getContext("2d");
+    const img = ctx.createImageData(im.width, im.height);
+    const px = b64bytes(im.rgb);
+    for (let i = 0; i < im.width * im.height; i++) {
+      img.data[i * 4] = px[i * 3]; img.data[i * 4 + 1] = px[i * 3 + 1];
+      img.data[i * 4 + 2] = px[i * 3 + 2]; img.data[i * 4 + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+    $("#srccap").textContent = im.labelName + " · " + im.width + "×" + im.height +
+      " · " + im.path.split("/").pop();
+
+    $("#loss-before").textContent = f(D.head.loss, 4);
+    $("#loss-after").textContent = f(D.after.loss, 4);
+    $("#loss-note").innerHTML = "정답은 <b>" + D.head.labelName + "</b>. 갱신 전 이 클래스에 준 확률은 " +
+      "<span class='mono'>" + f(D.head.pTrue, 4) + "</span>, 갱신 후 <span class='mono'>" +
+      f(D.after.pTrue, 4) + "</span>. 손실이 <span class='mono'>" + f(D.after.deltaLoss, 4) + "</span> 움직였다.";
+
+    const nParams = D.update.layers.reduce(function (a, l) { return a + l.count; }, 0);
+    const macs = D.steps.reduce(function (a, s) { return a + (s.macs || 0); }, 0);
+    const pipe = $("#pipe");
+    pipe.innerHTML = "";
+    [
+      ["픽셀", "3×32×32 = 3,072"],
+      ["연산 단계", commas(D.steps.length) + "개"],
+      ["곱셈-누산", commas(macs)],
+      ["로짓", "10"],
+      ["손실", "스칼라 1"],
+      ["갱신된 파라미터", commas(nParams)]
+    ].forEach(function (p, i) {
+      if (i) pipe.appendChild(el("span", "sep", "→"));
+      const n = el("span", "n");
+      n.innerHTML = p[0] + " <b>" + p[1] + "</b>";
+      pipe.appendChild(n);
+    });
+  }
+
+  function renderPreprocess() {
+    const pre = D.preprocess;
+    $("#px-coord").textContent = "(" + pre.pixelY + "," + pre.pixelX + ")";
+    table($("#pre-pixel"),
+      ["채널", "PNG 원본", "÷ 255", "mean", "std", "정규화 결과"],
+      pre.pixel.map(function (p) {
+        return [p.channel, p.raw, f(p.scaled, 6), f(p.mean, 4), f(p.std, 4),
+          { html: '<b>' + f(p.normalized, 6) + "</b>" }];
+      }));
+
+    table($("#pre-stats"),
+      ["단계", "shape", "min", "max", "평균", "표준편차"],
+      [
+        ["PNG (HWC uint8)", shape(pre.rawShape), f(pre.statsRaw.min, 0), f(pre.statsRaw.max, 0), f(pre.statsRaw.mean, 2), f(pre.statsRaw.std, 2)],
+        ["ToTensor (CHW)", shape(pre.tensorShape), f(pre.statsTensor.min, 4), f(pre.statsTensor.max, 4), f(pre.statsTensor.mean, 4), f(pre.statsTensor.std, 4)],
+        ["Normalize", shape(pre.tensorShape), f(pre.statsNorm.min, 4), f(pre.statsNorm.max, 4), f(pre.statsNorm.mean, 4), f(pre.statsNorm.std, 4)]
+      ]);
+
+    const host = $("#pre-planes");
+    host.innerHTML = "";
+    pre.planes.forEach(function (p) {
+      const box = el("div", "mapc");
+      const cv = el("canvas");
+      box.appendChild(cv);
+      box.appendChild(el("div", "cap", p.channel + " · " + f(p.min, 2) + " ~ " + f(p.max, 2)));
+      host.appendChild(box);
+      paint(cv, p);
+    });
+  }
+
+  function renderForward() {
+    $("#nsteps").textContent = D.steps.length;
+
+    const amax = D.steps.reduce(function (a, s) {
+      return Math.max(a, Math.abs(s.stats.min), Math.abs(s.stats.max));
+    }, 0);
+
+    const marks = [];
+    let seen = null;
+    D.steps.forEach(function (s, i) {
+      if (s.group !== seen) { seen = s.group; if (s.group !== "stem") marks.push({ i: i, label: s.group.split("/")[0].replace("stage", "S") }); }
+    });
+    const uniq = [];
+    marks.forEach(function (m) { if (!uniq.length || uniq[uniq.length - 1].label !== m.label) uniq.push(m); });
+
+    lineChart($("#chart-std"), [{
+      name: "표준편차", color: "var(--cool)",
+      values: D.steps.map(function (s) { return s.stats.std; })
+    }], { min: 0, marks: uniq });
+
+    lineChart($("#chart-zero"), [{
+      name: "0의 비율", color: "var(--warm)",
+      values: D.steps.map(function (s) { return s.stats.zeroFrac; })
+    }], { min: 0, max: 1, ticks: [0, 0.5, 1], fmt: function (t) { return (t * 100).toFixed(0) + "%"; }, marks: uniq });
+
+    const log = $("#log");
+    log.innerHTML = "";
+    const lh = el("div", "loghead");
+    ["#", "", "연산", "shape 변화", "값의 범위", "σ", "0의 비율"].forEach(function (t) {
+      lh.appendChild(el("span", null, t));
+    });
+    log.appendChild(lh);
+    let group = null;
+    D.steps.forEach(function (s) {
+      if (s.group !== group) {
+        group = s.group;
+        const gh = el("div", "grouphead");
+        gh.appendChild(el("span", null, groupName(group)));
+        gh.appendChild(el("span", "sh", shape(s.in)));
+        log.appendChild(gh);
+      }
+      log.appendChild(stepRow(s, amax, log));
+    });
+  }
+
+  function groupName(g) {
+    if (g === "stem") return "스템";
+    if (g === "head") return "헤드";
+    const m = g.match(/stage(\d+)\/unit(\d+)/);
+    return "스테이지 " + m[1] + " · 유닛 " + m[2];
+  }
+
+  function stepRow(s, amax, log) {
+    const row = el("div", "srow");
+    row.tabIndex = 0;
+    row.setAttribute("role", "button");
+    row.setAttribute("aria-expanded", "false");
+
+    row.appendChild(el("span", "idx", s.i));
+
+    const th = el("canvas", "thumb");
+    row.appendChild(th);
+    if (s.maps && s.maps.length) paint(th, s.maps[0]);
+    else { th.width = 1; th.height = 1; }
+
+    const name = el("span", "name");
+    name.innerHTML = s.label + (s.depth > 0 && s.path.indexOf("지름길") >= 0 ? ' <em>· 지름길</em>' : "");
+    row.appendChild(name);
+
+    const sh = el("span", "shape");
+    const inSpan = el("em", "in", shape(s.in) + " → ");
+    inSpan.style.fontStyle = "normal";
+    sh.appendChild(inSpan);
+    sh.appendChild(document.createTextNode(shape(s.out)));
+    row.appendChild(sh);
+
+    const rb = el("span", "rangebar");
+    const st = s.stats;
+    // 깊은 층일수록 값이 커져서 선형 눈금이면 앞쪽 층이 전부 뭉갠다. 부호를 살린 제곱근 눈금.
+    const pos = function (v) {
+      const t = Math.sign(v) * Math.sqrt(Math.abs(v) / amax);
+      return (t / 2 + 0.5) * 100;
+    };
+    const zero = el("i", "zero"); zero.style.left = "50%"; rb.appendChild(zero);
+    const span = el("i", "span");
+    span.style.left = pos(st.min) + "%";
+    span.style.width = Math.max(0.6, pos(st.max) - pos(st.min)) + "%";
+    span.style.background = "linear-gradient(90deg," + css(st.min / amax) + "," + css(st.max / amax) + ")";
+    rb.appendChild(span);
+    const sig = el("i", "sig");
+    const a = Math.max(st.min, st.mean - st.std), b = Math.min(st.max, st.mean + st.std);
+    sig.style.left = pos(a) + "%";
+    sig.style.width = Math.max(0.6, pos(b) - pos(a)) + "%";
+    sig.style.background = "linear-gradient(90deg," + css(a / amax) + "," + css(b / amax) + ")";
+    sig.title = "평균 " + f(st.mean, 3) + " ± " + f(st.std, 3);
+    rb.appendChild(sig);
+    const mu = el("i", "mu"); mu.style.left = pos(st.mean) + "%"; rb.appendChild(mu);
+    row.appendChild(rb);
+
+    row.appendChild(el("span", "sd", f(st.std, 2)));
+    row.appendChild(el("span", "zf", st.zeroFrac > 0 ? (st.zeroFrac * 100).toFixed(0) + "%" : "—"));
+
+    let detail = null;
+    const toggle = function () {
+      if (detail) { detail.remove(); detail = null; row.setAttribute("aria-expanded", "false"); return; }
+      detail = stepDetail(s);
+      row.after(detail);
+      row.setAttribute("aria-expanded", "true");
+    };
+    row.addEventListener("click", toggle);
+    row.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+    });
+    return row;
+  }
+
+  function stepDetail(s) {
+    const d = el("div", "detail");
+    const path = el("div", "note");
+    path.style.fontFamily = "var(--mono)";
+    path.style.fontSize = "11px";
+    path.style.marginBottom = "10px";
+    path.textContent = s.path;
+    d.appendChild(path);
+
+    if (s.note) {
+      const n = el("p", "note", s.note);
+      n.style.marginTop = "0";
+      d.appendChild(n);
+    }
+
+    if (s.maps) {
+      const maps = el("div", "maps");
+      s.maps.forEach(function (m) {
+        const box = el("div", "mapc");
+        const cv = el("canvas");
+        box.appendChild(cv);
+        box.appendChild(el("div", "cap", "ch " + m.c + " · " + f(m.min, 2) + " ~ " + f(m.max, 2)));
+        maps.appendChild(box);
+        paint(cv, m);
+      });
+      d.appendChild(maps);
+      if (s.out[1] > s.maps.length) {
+        d.appendChild(el("div", "note", "채널 " + s.out[1] + "개 중 앞 " + s.maps.length + "개만 실었다."));
+      }
+    }
+
+    if (s.values) {
+      const g = el("div");
+      g.style.cssText = "display:flex;flex-wrap:wrap;gap:2px;margin-top:4px";
+      const amax = s.values.reduce(function (a, v) { return Math.max(a, Math.abs(v)); }, 0) || 1;
+      s.values.forEach(function (v, i) {
+        const c = el("span", "mono", f(v, 2));
+        c.style.cssText = "font-size:9.5px;padding:2px 4px;border-radius:2px;background:" + css(v / amax);
+        c.title = "[" + i + "] " + v;
+        g.appendChild(c);
+      });
+      d.appendChild(g);
+    }
+
+    const rows = [
+      ["값의 개수", commas(s.stats.n)],
+      ["min / max", f(s.stats.min, 4) + " / " + f(s.stats.max, 4)],
+      ["평균 / 표준편차", f(s.stats.mean, 4) + " / " + f(s.stats.std, 4)],
+      ["0인 칸", (s.stats.zeroFrac * 100).toFixed(1) + "%"]
+    ];
+    if (s.macs) rows.push(["곱셈-누산", commas(s.macs)]);
+    (s.params || []).forEach(function (p) {
+      rows.push([p.name + " " + shape(p.shape), commas(p.count) + (p.trainable ? "" : " (학습 안 함)")]);
+    });
+    const tb = el("table");
+    tb.style.marginTop = "12px";
+    table(tb, ["항목", "값"], rows);
+    const sc = el("div", "scroll-x");
+    sc.appendChild(tb);
+    d.appendChild(sc);
+    return d;
+  }
+
+  // ── 산술 전개 ───────────────────────────────────────────────
+  const EX = [
+    { key: "conv", name: "합성곱" },
+    { key: "bn", name: "BatchNorm" },
+    { key: "relu", name: "ReLU" },
+    { key: "residual", name: "잔차 덧셈" },
+    { key: "gap", name: "평균 풀링" },
+    { key: "linear", name: "Linear" }
+  ];
+  let exCurrent = "conv";
+
+  function renderExhibits() {
+    const tabs = $("#ex-tabs");
+    tabs.innerHTML = "";
+    EX.forEach(function (t) {
+      const b = el("button", null, t.name);
+      b.type = "button";
+      b.setAttribute("role", "tab");
+      b.setAttribute("aria-selected", String(t.key === exCurrent));
+      b.addEventListener("click", function () { exCurrent = t.key; renderExhibits(); });
+      tabs.appendChild(b);
+    });
+    const body = $("#ex-body");
+    body.innerHTML = "";
+    body.appendChild(({
+      conv: exConv, bn: exBn, relu: exRelu, residual: exResidual, gap: exGap, linear: exLinear
+    })[exCurrent](D.exhibits[exCurrent]));
+  }
+
+  function verdict(a, b) {
+    const diff = Math.abs(a - b);
+    const c = el("div", "check");
+    c.textContent = diff === 0
+      ? "손계산과 엔진 값이 비트 단위로 같다 (차이 0)"
+      : "손계산과 엔진 값의 차이 " + diff.toExponential(1) + " — float32 반올림 범위";
+    return c;
+  }
+
+  function panelWith(title, lede) {
+    const p = el("div", "panel");
+    p.appendChild(el("h3", null, title));
+    if (lede) {
+      const n = el("p", "note", lede);
+      n.style.marginTop = "0";
+      p.appendChild(n);
+    }
+    return p;
+  }
+
+  function exConv(e) {
+    const p = panelWith(
+      "첫 conv의 출력 한 칸 — 곱셈 27번의 합",
+      "커널은 " + shape(e.kernelShape) + ". 출력 채널 " + e.outChannel + "번의 (" + e.y + "," + e.x +
+      ") 자리 한 칸을 만들려면, 입력 3채널의 3×3 이웃 27칸과 커널 27개를 짝지어 곱하고 전부 더한다.");
+    const wrap = el("div", "terms");
+    for (let c = 0; c < 3; c++) {
+      const col = el("div");
+      col.appendChild(el("div", "eyebrow", ["입력 채널 0 (R)", "입력 채널 1 (G)", "입력 채널 2 (B)"][c]));
+      const g = el("div", "tgrid");
+      e.terms.filter(function (t) { return t.c === c; }).forEach(function (t) {
+        const cell = el("div", "cell");
+        cell.innerHTML = "<span class='x'>" + f(t.x, 3) + "</span>" +
+          "<span class='w'>× " + f(t.w, 3) + "</span>" +
+          "<span class='p'>" + f(t.xw, 3) + "</span>";
+        g.appendChild(cell);
+      });
+      col.appendChild(g);
+      wrap.appendChild(col);
+    }
+    p.appendChild(wrap);
+    const eq = el("div", "eq");
+    eq.innerHTML = "<span class='lbl'>27개 곱의 합</span>  =  <b>" + f(e.sum, 6) + "</b><br>" +
+      "<span class='lbl'>엔진이 내놓은 값</span>  =  " + f(e.engine, 6);
+    eq.style.marginTop = "14px";
+    p.appendChild(eq);
+    p.appendChild(verdict(e.sum, e.engine));
+    p.appendChild(el("p", "note", e.note));
+    return p;
+  }
+
+  function exBn(e) {
+    const p = panelWith(
+      "BatchNorm — 채널 하나를 평균 0 · 분산 1로",
+      "채널 " + e.channel + "의 " + commas(e.n) + "칸에서 평균과 분산을 구한 다음, 학습되는 두 수 γ와 β로 다시 늘리고 옮긴다.");
+    const eq = el("div", "eq");
+    eq.innerHTML =
+      "<span class='lbl'>μ  (채널 평균)      </span> = " + f(e.mean, 6) + "<br>" +
+      "<span class='lbl'>σ² (채널 분산)      </span> = " + f(e.var, 6) + "<br>" +
+      "<span class='lbl'>√(σ²+ε), ε=" + e.eps + "</span> = " + f(e.std, 6) + "<br>" +
+      "<span class='lbl'>γ (학습됨)          </span> = " + f(e.gamma, 6) + "<br>" +
+      "<span class='lbl'>β (학습됨)          </span> = " + f(e.beta, 6) + "<br><br>" +
+      "<span class='lbl'>x  (" + e.y + "," + e.x + ")          </span> = " + f(e.input, 6) + "<br>" +
+      "<span class='lbl'>x̂ = (x−μ)/√(σ²+ε) </span> = " + f(e.xhat, 6) + "<br>" +
+      "<span class='lbl'>y = γ·x̂ + β        </span> = <b>" + f(e.result, 6) + "</b><br>" +
+      "<span class='lbl'>엔진                </span> = " + f(e.engine, 6);
+    p.appendChild(eq);
+    p.appendChild(verdict(e.result, e.engine));
+    const t = el("table");
+    t.style.marginTop = "14px";
+    table(t, ["추론용 이동평균", "값", "설명"], [
+      ["runningMean", f(e.runningMean, 6), { html: "momentum " + e.momentum + "으로 갱신" }],
+      ["runningVar", f(e.runningVar, 6), { html: "학습이 끝나면 μ·σ² 대신 이걸 쓴다" }]
+    ]);
+    const sc = el("div", "scroll-x"); sc.appendChild(t);
+    p.appendChild(sc);
+    p.appendChild(el("p", "note", e.note));
+    return p;
+  }
+
+  function exRelu(e) {
+    const p = panelWith("ReLU — 음수를 0으로",
+      commas(e.total) + "칸 중 " + commas(e.killed) + "칸(" + (e.killedFrac * 100).toFixed(1) + "%)이 0이 됐다.");
+    const g = el("div");
+    g.style.cssText = "display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:6px;margin-top:6px";
+    e.samples.forEach(function (s) {
+      const c = el("div", "cell");
+      const dead = s.out === 0;
+      c.innerHTML = "<span class='x' style='color:" + (dead ? "var(--muted)" : "var(--cool)") + "'>" + f(s.in, 4) + "</span>" +
+        "<span class='w'>↓</span><span class='p' style='color:" + (dead ? "var(--muted)" : "var(--ink)") + "'>" + f(s.out, 4) + "</span>";
+      g.appendChild(c);
+    });
+    p.appendChild(g);
+    p.appendChild(el("p", "note", e.note));
+    return p;
+  }
+
+  function exResidual(e) {
+    const p = panelWith("잔차 덧셈 — 두 경로가 만나는 자리",
+      "첫 잔차 유닛의 합류 지점. 채널 " + e.channel + "의 (" + e.y + "," + e.x + ") 한 칸만 떼어 본다.");
+    const eq = el("div", "eq");
+    let s =
+      "<span class='lbl'>잔차 경로 (conv들을 지나온 값)</span> = " + f(e.residual, 6) + "<br>" +
+      "<span class='lbl'>지름길   (거의 그대로 온 값)  </span> = " + f(e.shortcut, 6) + "<br>" +
+      "<span class='lbl'>더한 값                       </span> = <b>" + f(e.sum, 6) + "</b><br>" +
+      "<span class='lbl'>엔진                          </span> = " + f(e.engine, 6);
+    if (e.afterRelu !== null && e.afterRelu !== undefined) {
+      s += "<br><span class='lbl'>ReLU 통과 후 (v1만)           </span> = " + f(e.afterRelu, 6);
+    }
+    eq.innerHTML = s;
+    p.appendChild(eq);
+    p.appendChild(verdict(e.sum, e.engine));
+
+    const t = el("table");
+    t.style.marginTop = "14px";
+    table(t, ["텐서", "min", "max", "평균", "표준편차"], [
+      ["잔차 경로", f(e.residualStats.min, 3), f(e.residualStats.max, 3), f(e.residualStats.mean, 3), f(e.residualStats.std, 3)],
+      ["지름길", f(e.shortcutStats.min, 3), f(e.shortcutStats.max, 3), f(e.shortcutStats.mean, 3), f(e.shortcutStats.std, 3)],
+      ["합", f(e.sumStats.min, 3), f(e.sumStats.max, 3), f(e.sumStats.mean, 3), f(e.sumStats.std, 3)]
+    ]);
+    const sc = el("div", "scroll-x"); sc.appendChild(t);
+    p.appendChild(sc);
+    p.appendChild(el("p", "note", e.note));
+    return p;
+  }
+
+  function exGap(e) {
+    const p = panelWith("전역 평균 풀링 — " + shape(e.shape).replace(/[[\]]/g, "") + " 가 길이 " + e.pooled.length + " 벡터로",
+      "채널마다 남은 공간 정보를 평균 하나로 접는다. 아래는 채널 " + e.channel + "의 " + e.values.length + "칸 전부다.");
+    const amax = e.values.reduce(function (a, v) { return Math.max(a, Math.abs(v)); }, 0) || 1;
+    const side = Math.round(Math.sqrt(e.values.length));
+    const g = el("div");
+    g.style.cssText = "display:grid;grid-template-columns:repeat(" + side + ",1fr);gap:2px;max-width:420px";
+    e.values.forEach(function (v) {
+      const c = el("div", "cell");
+      c.style.background = css(v / amax);
+      c.textContent = f(v, 2);
+      g.appendChild(c);
+    });
+    p.appendChild(g);
+    const eq = el("div", "eq");
+    eq.style.marginTop = "14px";
+    eq.innerHTML = "<span class='lbl'>" + e.values.length + "칸의 합</span> = " + f(e.sum, 6) + "<br>" +
+      "<span class='lbl'>÷ " + e.values.length + "        </span> = <b>" + f(e.mean, 6) + "</b><br>" +
+      "<span class='lbl'>엔진      </span> = " + f(e.engine, 6);
+    p.appendChild(eq);
+    p.appendChild(verdict(e.mean, e.engine));
+    p.appendChild(el("p", "note", e.note));
+    return p;
+  }
+
+  function exLinear(e) {
+    const p = panelWith("Linear — 정답 클래스(" + e.className + ")의 점수",
+      "풀링으로 나온 길이 " + e.terms.length + " 벡터와 이 클래스의 가중치 행을 내적한다. 기여가 큰 순서로 정렬했다.");
+    const sorted = e.terms.slice().sort(function (a, b) { return Math.abs(b.xw) - Math.abs(a.xw); });
+    const amax = Math.abs(sorted[0].xw) || 1;
+    const g = el("div");
+    g.style.cssText = "display:grid;grid-template-columns:repeat(auto-fit,minmax(78px,1fr));gap:3px";
+    sorted.forEach(function (t) {
+      const c = el("div", "cell");
+      c.style.borderColor = "transparent";
+      c.style.background = css(t.xw / amax);
+      c.title = "특징 " + t.j;
+      c.innerHTML = "<span class='x' style='color:inherit;opacity:.75'>" + f(t.x, 2) + " × " + f(t.w, 2) + "</span>" +
+        "<span class='p' style='color:inherit;border-color:currentColor;opacity:1'>" + f(t.xw, 3) + "</span>";
+      g.appendChild(c);
+    });
+    p.appendChild(g);
+    const eq = el("div", "eq");
+    eq.style.marginTop = "14px";
+    eq.innerHTML = "<span class='lbl'>" + e.terms.length + "개 곱의 합</span> = " + f(e.sum, 6) + "<br>" +
+      "<span class='lbl'>+ bias      </span> = " + f(e.bias, 6) + "<br>" +
+      "<span class='lbl'>로짓 z[" + e.class + "]  </span> = <b>" + f(e.result, 6) + "</b><br>" +
+      "<span class='lbl'>엔진        </span> = " + f(e.engine, 6);
+    p.appendChild(eq);
+    p.appendChild(verdict(e.result, e.engine));
+    p.appendChild(el("p", "note", e.note));
+    return p;
+  }
+
+  // ── 손실 ────────────────────────────────────────────────────
+  function renderLoss() {
+    const h = D.head;
+    const amax = h.probs.reduce(function (a, v) { return Math.max(a, v); }, 0);
+    table($("#soft-table"),
+      ["클래스", "로짓 z", "exp(z−max)", "확률", ""],
+      h.classes.map(function (c, i) {
+        return {
+          cls: i === h.label ? "is-true" : "",
+          cells: [
+            { html: i === h.label ? "<b>" + c + "</b> ←정답" : c },
+            f(h.logits[i], 4), f(h.exp[i], 4),
+            { html: "<b>" + f(h.probs[i], 4) + "</b>" },
+            { html: "<span style='display:inline-block;height:8px;border-radius:1px;background:" +
+                    (i === h.label ? "var(--good)" : "var(--cool)") +
+                    ";width:" + (h.probs[i] / amax * 54).toFixed(1) + "px'></span>" }
+          ]
+        };
+      }));
+
+    $("#loss-eq").innerHTML =
+      "<span class='lbl'>max(z)        </span> = " + f(h.shift, 6) + "<br>" +
+      "<span class='lbl'>Σ exp(z−max)  </span> = " + f(h.denom, 6) + "<br>" +
+      "<span class='lbl'>p[" + h.labelName + "]" + " ".repeat(Math.max(0, 9 - h.labelName.length)) + "</span> = " + f(h.pTrue, 6) + "<br>" +
+      "<span class='lbl'>L = −ln p     </span> = <b>" + f(h.loss, 6) + "</b><br>" +
+      "<span class='lbl'>DJL의 값      </span> = " + f(h.lossFromDjl, 6);
+
+    $("#pred-name").textContent = h.predName;
+    $("#pred-p").textContent = "확률 " + f(h.probs[h.pred], 4);
+    $("#true-p").textContent = f(h.pTrue, 4);
+    $("#loss-v").textContent = f(h.loss, 4);
+  }
+
+  // ── 역전파 ──────────────────────────────────────────────────
+  function renderBackward() {
+    const b = D.backward, h = D.head;
+    const amax = b.dLogits.reduce(function (a, v) { return Math.max(a, Math.abs(v)); }, 0) || 1;
+    table($("#dz-table"),
+      ["클래스", "확률 p", "onehot", "dL/dz", "지시"],
+      h.classes.map(function (c, i) {
+        const g = b.dLogits[i];
+        return {
+          cls: i === h.label ? "is-true" : "",
+          cells: [
+            { html: i === h.label ? "<b>" + c + "</b>" : c },
+            f(h.probs[i], 4), i === h.label ? 1 : 0,
+            { html: "<b style='color:" + (g < 0 ? "var(--cool)" : "var(--warm)") + "'>" + f(g, 5) + "</b>" },
+            { html: "<span style='color:var(--muted)'>" + (g < 0 ? "점수 올려" : "점수 내려") + "</span>" }
+          ]
+        };
+      }));
+
+    const lc = b.linearGradCheck;
+    $("#gradcheck-eq").innerHTML =
+      "<span class='lbl'>" + lc.formula + "</span><br>" +
+      "<span class='lbl'>즉, 그 특징이 컸던 클래스일수록 크게 움직인다.</span>";
+    table($("#gradcheck"),
+      ["W[k][j]", "dL/dz[k]", "특징 x[j]", "손계산", "엔진"],
+      lc.samples.map(function (s) {
+        return ["[" + s.k + "][" + s.j + "]", f(s.dz, 5), f(s.x, 5), f(s.manual, 6), f(s.engine, 6)];
+      }));
+    $("#gradcheck-diff").textContent =
+      "640개 원소 전부 대조 — 최대 차이 " + lc.maxAbsDiff.toExponential(1) + " (float32 반올림 범위)";
+
+    // 층별 그래디언트 노름: v1과 v2를 같은 축에 겹쳐 본다.
+    const pick = function (d) {
+      return d.backward.layers.filter(function (l) { return l.trainable && l.name.indexOf("weight") >= 0; });
+    };
+    const a1 = pick(DATA.v1), a2 = pick(DATA.v2);
+    const n = Math.min(a1.length, a2.length);
+    lineChart($("#chart-grad"), [
+      { name: "v1", color: D.version === "v1" ? "var(--warm)" : "var(--muted)", values: a1.slice(0, n).map(function (l) { return l.gradNorm; }), width: D.version === "v1" ? 1.9 : 1.1 },
+      { name: "v2", color: D.version === "v2" ? "var(--warm)" : "var(--muted)", values: a2.slice(0, n).map(function (l) { return l.gradNorm; }), width: D.version === "v2" ? 1.9 : 1.1 }
+    ], { min: 0, width: 1000, height: 190 });
+
+    const layers = pick(D);
+    const first = layers[0].gradNorm, last = layers[layers.length - 1].gradNorm;
+    $("#grad-note").innerHTML =
+      "왼쪽이 입력에 가까운 층, 오른쪽이 출력에 가까운 층이다 (conv/linear 가중치 " + layers.length + "개). " +
+      "지금 보는 <b>" + D.version + "</b>에서 첫 층의 그래디언트 노름은 <span class='mono'>" + f(first, 4) +
+      "</span>, 마지막 층은 <span class='mono'>" + f(last, 4) + "</span>다. " +
+      "초기화 직후 한 장짜리 배치라 두 버전의 차이가 크게 벌어지지는 않는다 — " +
+      "v2의 이점은 층이 훨씬 깊어질 때 드러난다.";
+  }
+
+  // ── 갱신 ────────────────────────────────────────────────────
+  function renderUpdate() {
+    const u = D.update, e = u.exhibit;
+    $("#update-eq").innerHTML =
+      "<span class='lbl'>파라미터        </span> " + e.name + " [" + e.index + "]<br><br>" +
+      "<span class='lbl'>w (갱신 전)     </span> = " + f(e.w, 8) + "<br>" +
+      "<span class='lbl'>dL/dw           </span> = " + f(e.grad, 8) + "<br>" +
+      "<span class='lbl'>wd · w          </span> = " + f(e.decay, 8) + "  <span class='lbl'>(wd = " + u.weightDecay + ")</span><br>" +
+      "<span class='lbl'>lr              </span> = " + e.lr + "<br><br>" +
+      "<span class='lbl'>w − lr(g + wd·w)</span> = <b>" + f(e.predicted, 8) + "</b><br>" +
+      "<span class='lbl'>실제 갱신 결과  </span> = " + f(e.actual, 8);
+    const c = $("#update-check");
+    const diff = Math.abs(e.predicted - e.actual);
+    c.textContent = diff === 0
+      ? "DJL 옵티마이저가 내놓은 값과 정확히 같다"
+      : "차이 " + diff.toExponential(1) + " — float32 반올림 범위";
+
+    const rows = u.layers.filter(function (l) { return l.name.indexOf("weight") >= 0; });
+    lineChart($("#chart-delta"), [
+      { name: "|Δw| 평균", color: "var(--warm)", values: rows.map(function (l) { return l.deltaAbsMean; }) }
+    ], { min: 0, height: 130 });
+
+    const total = u.layers.reduce(function (a, l) { return a + l.count; }, 0);
+    const maxRow = u.layers.reduce(function (a, l) { return l.relative > a.relative ? l : a; }, u.layers[0]);
+    $("#delta-note").innerHTML =
+      commas(total) + "개 파라미터가 한꺼번에 움직였다. 상대 변화가 가장 큰 층은 " +
+      "<span class='mono'>" + maxRow.name + "</span>으로 " + (maxRow.relative * 100).toFixed(2) + "% 움직였다.";
+  }
+
+  function renderProbs() {
+    const before = D.head, after = D.after;
+    const host = $("#probs");
+    host.innerHTML = "";
+    before.classes.forEach(function (c, i) {
+      const row = el("div", "prow" + (i === before.label ? " is-true" : ""));
+      row.appendChild(el("span", "nm", c));
+      [["", before.probs[i]], ["after", after.probs[i]]].forEach(function (pair) {
+        const bar = el("span", "pbar " + pair[0]);
+        const fill = el("i");
+        fill.style.width = "0%";
+        bar.appendChild(fill);
+        row.appendChild(bar);
+        row.appendChild(el("span", "pv", f(pair[1], 3)));
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () { fill.style.width = (pair[1] * 100).toFixed(2) + "%"; });
+        });
+      });
+      host.appendChild(row);
+    });
+  }
+
+  // ── 조작 ────────────────────────────────────────────────────
+  document.querySelectorAll(".toggle button").forEach(function (b) {
+    b.addEventListener("click", function () {
+      D = DATA[b.dataset.ver];
+      document.querySelectorAll(".toggle button").forEach(function (o) {
+        o.setAttribute("aria-pressed", String(o === b));
+      });
+      canvases.length = 0;
+      render();
+    });
+  });
+
+  // 아티팩트 뷰어 안에서는 호스트가 data-theme을 찍어 주지만, 독립 문서로 열면 여기가 유일한 전환 수단이다.
+  $("#theme").addEventListener("click", function () {
+    const next = isDark() ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    try { localStorage.setItem("resnet-cycle-theme", next); } catch (e) { /* 사생활 모드 */ }
+  });
+  try {
+    const saved = localStorage.getItem("resnet-cycle-theme");
+    if (saved) document.documentElement.setAttribute("data-theme", saved);
+  } catch (e) { /* 사생활 모드 */ }
+
+  const links = Array.prototype.slice.call(document.querySelectorAll("#jump a"));
+  const io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) {
+      if (!en.isIntersecting) return;
+      links.forEach(function (a) { a.classList.toggle("on", a.getAttribute("href") === "#" + en.target.id); });
+    });
+  }, { rootMargin: "-64px 0px -70% 0px" });
+  ["s0", "s1", "s2", "s3", "s4", "s5", "s6"].forEach(function (id) {
+    const n = document.getElementById(id);
+    if (n) io.observe(n);
+  });
+
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", repaintAll);
+  new MutationObserver(repaintAll).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+  refreshPalette();
+  drawRamp();
+  render();
+})();
+</script>
